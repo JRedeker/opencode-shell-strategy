@@ -1,0 +1,16 @@
+{
+  "name": "opencode-shell-non-interactive-strategy",
+  "version": "1.0.0",
+  "description": "Rules and strategies for AI agents to operate in non-interactive shell environments",
+  "main": "shell_strategy.md",
+  "keywords": [
+    "opencode",
+    "plugin",
+    "agent",
+    "shell",
+    "automation",
+    "headless"
+  ],
+  "author": "JRede",
+  "license": "MIT"
+}
