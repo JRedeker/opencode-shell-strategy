@@ -1,34 +1,75 @@
-# Shell Non-Interactive Strategy Plugin
+# opencode-shell-strategy
 
-This Opencode plugin provides a set of rules and strategies to empower AI agents (specifically Gemini and other models less familiar with headless environments) to operate effectively in non-interactive shells.
+OpenCode instructions for non-interactive shell commands - prevents hangs from TTY-dependent operations.
 
-## Purpose
+## Problem
 
-Standard AI models often assume a human is watching the terminal or that they can use interactive tools like `nano`, `vim`, or answer "y/n" prompts. In a headless agentic environment (like Opencode), these actions cause the agent to hang and time out.
+OpenCode's shell environment is strictly **non-interactive**. It lacks a TTY/PTY, meaning any command that waits for user input, confirmation, or launches a UI (editor/pager) will hang indefinitely and timeout.
 
-This plugin "patches" the agent's knowledge base with explicit instructions to:
-- Always use non-interactive flags (e.g., `-y`, `--no-edit`).
-- Bypass prompts using `yes |` or Heredocs.
-- Avoid TTY-dependent tools (editors, pagers).
+Standard AI models often assume a human is watching the terminal or that they can use interactive tools like `nano`, `vim`, or answer "y/n" prompts. In OpenCode's headless environment, these actions cause the agent to hang.
+
+## Solution
+
+This plugin provides instructions that teach the LLM to:
+- Always use non-interactive flags (e.g., `-y`, `--no-edit`)
+- Bypass prompts using `yes |` or heredocs
+- Avoid TTY-dependent tools (editors, pagers)
+- Prefer OpenCode's native tools (`Read`/`Write`/`Edit`) over shell manipulation
 
 ## Installation
 
-1.  Clone this repository to your local machine:
-    ```bash
-    git clone https://github.com/your-username/shell-non-interactive-strategy.git ~/dev/oc-plugins/shell-non-interactive-strategy
-    ```
+### 1. Clone the repository
 
-2.  Add the rule file to your Opencode configuration (`~/.config/opencode/opencode.json`):
+```bash
+git clone https://github.com/JRedeker/opencode-shell-strategy.git ~/.config/opencode/plugin/shell-strategy
+```
 
-    ```json
-    {
-      "instructions": [
-        "~/.config/opencode/rules.yaml",
-        "~/dev/oc-plugins/shell-non-interactive-strategy/shell_strategy.md"
-      ]
-    }
-    ```
+### 2. Add to OpenCode config
 
-## Usage
+Add the instruction file to your `~/.config/opencode/opencode.json`:
 
-Once installed, the agent will automatically ingest these rules at the start of every session. You don't need to do anything else. The agent will seemingly "know" how to handle `npm init`, `git commit`, and other common blockers without getting stuck.
+```json
+{
+  "instructions": [
+    "~/.config/opencode/plugin/shell-strategy/shell_strategy.md"
+  ]
+}
+```
+
+### 3. Restart OpenCode
+
+The rules will be automatically loaded at the start of every session.
+
+## What It Covers
+
+### Package Managers
+| Tool | Bad (hangs) | Good |
+|------|-------------|------|
+| npm | `npm init` | `npm init -y` |
+| apt | `apt-get install pkg` | `apt-get install -y pkg` |
+| pip | `pip install pkg` | `pip install --no-input pkg` |
+
+### Git Operations
+| Action | Bad (hangs) | Good |
+|--------|-------------|------|
+| Commit | `git commit` | `git commit -m "msg"` |
+| Merge | `git merge branch` | `git merge --no-edit branch` |
+| Add | `git add -p` | `git add .` |
+
+### System Commands
+| Tool | Bad (hangs) | Good |
+|------|-------------|------|
+| rm | `rm file` (prompts) | `rm -f file` |
+| ssh | `ssh host` | `ssh -o BatchMode=yes host` |
+| unzip | `unzip file.zip` | `unzip -o file.zip` |
+
+### Banned Commands
+These will always hang - never use them:
+- `vim`, `nano`, `vi` (editors)
+- `less`, `more`, `man` (pagers)
+- `git add -p`, `git rebase -i` (interactive modes)
+- `python` without `-c` flag (REPL)
+
+## License
+
+MIT
