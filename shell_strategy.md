@@ -4,21 +4,27 @@
 
 **Goal:** Achieve parity with Claude Code's shell capabilities through internalized knowledge of non-interactive flags and environment variables.
 
-## ⚠️ Model-Specific Criticality: Gemini 3 Pro Preview
+## Cognitive & Behavioral Standards
 
-**For Claude models:** The rules below are "best practices" that improve efficiency.
+To match the high-agency, autonomous capabilities of advanced models (like Claude 3.5 Sonnet), this strategy enforces strict cognitive patterns. These are not just shell tips; they are **behavioral requirements** for success in this environment.
 
-**For Gemini 3 Pro Preview:** The rules below are **CRITICAL** because they are manifestations of documented Gemini behavioral issues:
+**Goal:** Eliminate "human-in-the-loop" dependency during task execution.
 
-1. **"Commands expecting input MUST use timeouts"** → Addresses Gemini's turn-taking disconnect (model stops after tool output and waits)
-2. **"Force & Yes" / "No Interactive Modes"** → Addresses Gemini's negative constraint blindness (model needs explicit "DO X" vs "don't do Y")
-3. **"Assume CI=true" / "No Editors or Pagers"** → Addresses Gemini's context/environment awareness (model treats all retrieved context equally)
+**Key Behaviors:**
+1. **Process Continuity (Turn-Taking):**
+   - **Rule:** Never stop after a tool output to "wait for instructions" unless the task is complete.
+   - **Why:** The environment is non-interactive. You must drive the workflow.
+   - **Mechanism:** Commands expecting input MUST use timeouts or explicit "yes" pipes.
 
-**External validation:**
-- GitHub Issue #859: "Gemini function/tool calls not executing automatically"
-- Google AI Developers Forum: "Critical Failure in Instruction Following & Negative Constraints Adherence"
+2. **Explicit Action Framing (Positive Constraints):**
+   - **Rule:** Follow "GOOD" (positive) instructions, ignore "BAD" (negative) assumptions.
+   - **Why:** Models follow explicit directives ("Use -y") better than prohibitions ("Don't prompt").
+   - **Mechanism:** Always preemptively supply non-interactive flags.
 
-**Conclusion:** When running with Gemini 3 Pro Preview, follow these rules strictly. For Claude, they are optional optimizations.
+3. **Environment Rigor (Context Awareness):**
+   - **Rule:** Assume a headless CI environment where any prompt = failure.
+   - **Why:** There is no TTY. "Asking the user" via a shell prompt causes a hang.
+   - **Mechanism:** Strictly avoid editors, pagers, and interactive modes.
 
 ## 1. Core Mandates
 
