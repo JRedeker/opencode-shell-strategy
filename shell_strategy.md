@@ -6,7 +6,7 @@
 
 ## Cognitive & Behavioral Standards
 
-To match the high-agency, autonomous capabilities of advanced models (like Claude 3.5 Sonnet), this strategy enforces strict cognitive patterns. These are not just shell tips; they are **behavioral requirements** for success in this environment.
+To match the high-agency, autonomous capabilities of advanced models (like Claude Sonnet), this strategy enforces strict cognitive patterns. These are not just shell tips; they are **behavioral requirements** for success in this environment.
 
 **Goal:** Eliminate "human-in-the-loop" dependency during task execution.
 
