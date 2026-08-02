@@ -78,3 +78,12 @@ If the command requires a password, `sudo -n` fails immediately. Do not pipe pas
 ## License
 
 MIT
+
+## Release notes
+
+### v1.1.0
+
+- Safer guidance for commands that need authorization: prefer `sudo -n` so failures are visible instead of hanging, and do not pipe passwords into `sudo -S`.
+- Safer SSH first-contact guidance: use `StrictHostKeyChecking=accept-new` with a short timeout and `BatchMode=yes` instead of disabling host-key checks.
+- Added a dependency-free verification script (`test.sh verify`) so the rule set can be checked without installing extra tools.
+- No new runtime dependencies were introduced.
