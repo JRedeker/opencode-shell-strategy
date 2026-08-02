@@ -53,6 +53,15 @@ export
 >> ~/.zshrc
 EOF
 
+cat > "$tmp/required_forms.txt" <<'EOF'
+BatchMode=yes
+StrictHostKeyChecking=accept-new
+sudo -n
+npm init -y
+EOF
+
+touch "$tmp/extracted_blocks.txt"
+
 cat > "$tmp/check.awk" <<'EOF'
 BEGIN {
   while ((getline line < prohibited_file) > 0) {
@@ -64,6 +73,8 @@ BEGIN {
 /^```(sh|bash|zsh)$/ { in_block=1; block_line=NR; content=""; next }
 /^```$/ && in_block {
   in_block=0
+  print content >> extracted_file
+  close(extracted_file)
   # The pragma must be the first non-empty line of the block.
   sub(/^[ \t\n]+/, "", content)
   sub(/\n.*$/, "", content)
@@ -81,12 +92,23 @@ EOF
 
 failures=0
 
-awk_output=$(awk -v prohibited_file="$tmp/prohibited.txt" -f "$tmp/check.awk" "$README" "$STRATEGY")
+awk_output=$(awk -v prohibited_file="$tmp/prohibited.txt" -v extracted_file="$tmp/extracted_blocks.txt" -f "$tmp/check.awk" "$README" "$STRATEGY")
 if [ -n "$awk_output" ]; then
   printf '%s\n' "$awk_output"
   count=$(printf '%s\n' "$awk_output" | grep -c '^FAIL:')
   failures=$((failures + count))
 fi
+
+# Positive assertions: required safe forms must appear in fenced shell blocks.
+while IFS= read -r form; do
+  [ -n "$form" ] || continue
+  if grep -F -q "$form" "$tmp/extracted_blocks.txt"; then
+    echo "OK: required safe form '$form' found"
+  else
+    echo "FAIL: required safe form '$form' not found in any fenced shell block"
+    failures=$((failures + 1))
+  fi
+done < "$tmp/required_forms.txt"
 
 # README installation section: must use the instructions[] mechanism with a
 # remote raw.githubusercontent.com URL pointing to shell_strategy.md.
