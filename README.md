@@ -1,74 +1,79 @@
 # opencode-shell-strategy
 
-OpenCode instructions for non-interactive shell commands - prevents hangs from TTY-dependent operations.
+OpenCode instructions for running shell commands safely in a non-interactive environment.
 
-## Problem
+OpenCode's shell is non-interactive: it has no TTY/PTY, so commands that wait for input, launch a pager, or open an editor will hang until timeout. These instructions teach an agent to use command-specific non-interactive forms, fail fast when authorization is missing, and avoid unsafe patterns that bypass security controls.
 
-OpenCode's shell environment is strictly **non-interactive**. It lacks a TTY/PTY, meaning any command that waits for user input, confirmation, or launches a UI (editor/pager) will hang indefinitely and timeout.
-
-Standard AI models often assume a human is watching the terminal or that they can use interactive tools like `nano`, `vim`, or answer "y/n" prompts. In OpenCode's headless environment, these actions cause the agent to hang.
-
-## Solution
-
-This plugin provides instructions that teach the LLM to:
-- Always use non-interactive flags (e.g., `-y`, `--no-edit`)
-- Bypass prompts using `yes |` or heredocs
-- Avoid TTY-dependent tools (editors, pagers)
-- Prefer OpenCode's native tools (`Read`/`Write`/`Edit`) over shell manipulation
+The rules are written for OpenCode and apply to any comparable headless agent host.
 
 ## Installation
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/JRedeker/opencode-shell-strategy.git ~/.config/opencode/plugin/shell-strategy
-```
-
-### 2. Add to OpenCode config
-
-Add the instruction file to your `~/.config/opencode/opencode.json`:
+Add the remote instruction file to your OpenCode configuration:
 
 ```json
 {
   "instructions": [
-    "~/.config/opencode/plugin/shell-strategy/shell_strategy.md"
+    "https://raw.githubusercontent.com/JRedeker/opencode-shell-strategy/trunk/shell_strategy.md"
   ]
 }
 ```
 
-### 3. Restart OpenCode
+Restart OpenCode. The rules load automatically at the start of each session.
 
-The rules will be automatically loaded at the start of every session.
+A local clone is optional. If you want to edit or contribute, clone the repository and point your config at the local `shell_strategy.md` path instead.
 
-## What It Covers
+## What it covers
 
-### Package Managers
-| Tool | Bad (hangs) | Good |
-|------|-------------|------|
-| npm | `npm init` | `npm init -y` |
-| apt | `apt-get install pkg` | `apt-get install -y pkg` |
-| pip | `pip install pkg` | `pip install --no-input pkg` |
+### Safe non-interactive forms
 
-### Git Operations
-| Action | Bad (hangs) | Good |
-|--------|-------------|------|
-| Commit | `git commit` | `git commit -m "msg"` |
-| Merge | `git merge branch` | `git merge --no-edit branch` |
-| Add | `git add -p` | `git add .` |
+| Tool | Avoid | Use |
+|------|-------|-----|
+| npm init | `npm init` | `npm init -y` |
+| apt install | `apt-get install pkg` | `apt-get install -y pkg` |
+| pip install | `pip install pkg` | `pip install --no-input pkg` |
+| git commit | `git commit` | `git commit -m "msg"` |
+| git merge | `git merge branch` | `git merge --no-edit branch` |
+| git pull | `git pull` | `git pull --no-edit` |
+| rm | `rm -i file` | `rm file` (no `-i`) |
+| ssh first contact | `ssh host` | `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 user@host` |
 
-### System Commands
-| Tool | Bad (hangs) | Good |
-|------|-------------|------|
-| rm | `rm file` (prompts) | `rm -f file` |
-| ssh | `ssh host` | `ssh -o BatchMode=yes host` |
-| unzip | `unzip file.zip` | `unzip -o file.zip` |
+### Always-banned commands
 
-### Banned Commands
-These will always hang - never use them:
-- `vim`, `nano`, `vi` (editors)
+These hang or break autonomy in a non-interactive shell:
+
+- `vim`, `nano`, `vi`, `emacs` (editors)
 - `less`, `more`, `man` (pagers)
-- `git add -p`, `git rebase -i` (interactive modes)
-- `python` without `-c` flag (REPL)
+- `git add -p`, `git rebase -i` (interactive git modes)
+- `python`, `node`, `ipython`, `irb` without a script or `-c`/`-e` argument (REPLs)
+- `bash -i`, `zsh -i` (interactive shells)
+
+### Handling commands that must prompt
+
+Do not use `yes | …` or heredocs to blanket-approve unknown prompts. If a command has no non-interactive flag, choose one of:
+
+1. **Use a documented non-interactive flag.** Example: `apt-get install -y pkg`.
+2. **Fail fast with a non-interactive mode.** Example: `sudo -n command` exits immediately if a password is required.
+3. **Stop visibly.** Report that the operation needs credentials, user approval, or a trusted host, and do not proceed.
+
+### SSH and new hosts
+
+For an explicitly trusted first contact, use `StrictHostKeyChecking=accept-new` with a short timeout:
+
+```bash
+ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 user@host
+```
+
+If a host key changes, the command fails. Do not use `StrictHostKeyChecking=no`.
+
+### Privileged commands
+
+Use `sudo -n` to run a command only when it needs no password:
+
+```bash
+sudo -n systemctl status nginx
+```
+
+If the command requires a password, `sudo -n` fails immediately. Do not pipe passwords into `sudo -S`.
 
 ## License
 
