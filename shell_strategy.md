@@ -1,8 +1,8 @@
 # Shell non-interactive strategy
 
-**Context:** OpenCode's shell environment is non-interactive: it has no TTY/PTY, so commands that wait for input, launch a pager, or open an editor will hang until timeout.
+**Context:** OpenCode's shell environment is non-interactive: it has no TTY/PTY, so commands that wait for input, launch a pager, or open an editor will hang until timeout. (Exception: interactive PTYs provided by `opencode-pty` or OpenCode's persistent terminals allow interactive programs; the rules below still apply to the default non-interactive `shell` tool.)
 
-**Scope:** This file is a portable policy for headless agent environments. It is loaded by OpenCode as an instruction file. The rules apply to any comparable non-interactive shell.
+**Scope:** This file is a portable policy for headless agent environments. It is loaded by OpenCode as an instruction file. The rules apply to any comparable non-interactive shell, including OpenCode v2. OpenCode v2's `shell` tool runs a POSIX shell (fish and nu are rejected for the agent shell and remain terminal-only), so write POSIX-compatible commands.
 
 ## 1. Core rules
 
@@ -11,6 +11,23 @@
 3. **Use command-specific non-interactive flags.** Prefer documented flags (`-y`, `--no-input`, `--no-edit`, `--no-pager`) over generic force.
 4. **Fail fast on missing authorization.** When a command cannot run without a password or user choice, use a non-interactive fail-fast form or stop and report.
 5. **Prefer OpenCode tools.** Use `Read`, `Write`, and `Edit` for file operations instead of shell text manipulation when they are available.
+6. **Target a POSIX shell.** Write commands that run under any `/bin/sh`-compatible shell. Avoid shell-specific syntax such as fish `set`/`(cmd)` substitution, Nushell pipelines, or zsh-only globbing; do not rely on non-POSIX builtins.
+7. **Quote defensively.** Wrap every variable expansion and filesystem path in double quotes (`"$var"`, `"$path"`) to prevent word splitting and globbing; single-quote literals that contain shell metacharacters. Never assume an unquoted token survives spaces, globs, or newlines.
+
+### Portability and quoting
+
+| Concern | Avoid | Prefer |
+|---------|-------|--------|
+| Shell-specific syntax | fish `set x 1`, `(cmd)`, nu pipelines | POSIX `x=1`, `$(cmd)` |
+| Unquoted expansion | `cp $src $dst` | `cp "$src" "$dst"` |
+| Unquoted paths | `rm $HOME/my dir/file` | `rm "$HOME/my dir/file"` |
+| Literal metacharacters | `echo a|b` unquoted | `printf '%s\\n' 'a|b'` |
+
+```bash
+src="/path/with spaces/file.txt"
+dst="/tmp/out.txt"
+cp "$src" "$dst"
+```
 
 ## 2. Handling prompts
 
@@ -134,7 +151,20 @@ Git may invoke an editor for `commit` without `-m` and for `merge` or `pull` whe
 | node | `node` | `node -e "code"` or `node script.js` |
 | ipython | `ipython` | Never use; use `python -c` |
 
-## 6. Optional per-command environment variables
+## 6. OpenCode specifics
+
+- The `shell` tool is non-interactive: stdin is ignored, so commands cannot read prompts.
+- Prefer the tool's own options over wrapping: set `workdir` instead of `cd`, `timeout` (milliseconds) for long commands, and `background` for dev servers or long-running processes.
+- OpenCode v2 permissions use the `shell` action (not `bash`); scope rules by command string.
+- These rules target the non-interactive `shell` tool. Interactive PTYs (opencode-pty, persistent terminals) can run interactive programs, but the banned/destructive guidance still applies.
+
+## 7. Cross-platform notes
+
+- **Windows:** the shell tool runs PowerShell with `-NonInteractive`. Prefer PowerShell-native non-interactive forms and set `$ProgressPreference = 'SilentlyContinue'` to avoid progress streams.
+- **cmd.exe:** use `set VAR=value &&` prefixes and avoid interactive `pause`/`choice`.
+- **Shell detection:** detect the active shell (Unix via `SHELL`, PowerShell via `PSModulePath`) rather than assuming bash; apply restrictive settings only in non-interactive contexts.
+
+## 8. Optional per-command environment variables
 
 These variables can be set for a single command when the tool does not provide a dedicated flag. They are not required and should not be set globally as an anti-hang technique.
 
@@ -151,7 +181,7 @@ Example:
 GIT_TERMINAL_PROMPT=0 git clone https://github.com/example/repo.git
 ```
 
-## 7. Source references
+## 9. Source references
 
 - Git: [git-commit](https://git-scm.com/docs/git-commit), [git-merge](https://git-scm.com/docs/git-merge), [git-pull](https://git-scm.com/docs/git-pull), [git-rebase](https://git-scm.com/docs/git-rebase); `--no-edit`, `--no-pager`, `-m`.
 - OpenSSH: [ssh_config(5)](https://man.openbsd.org/ssh_config) — `BatchMode`, `StrictHostKeyChecking`, `ConnectTimeout`.
