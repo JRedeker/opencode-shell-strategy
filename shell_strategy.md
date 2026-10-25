@@ -170,10 +170,17 @@ These variables can be set for a single command when the tool does not provide a
 
 | Variable | Value | Effect |
 |----------|-------|--------|
+| `CI` | `true` | General CI/non-interactive detection |
 | `GIT_TERMINAL_PROMPT` | `0` | Disable git HTTP password prompts |
+| `GIT_EDITOR` | `true` | Block git editor invocation |
+| `GIT_PAGER` | `cat` | Disable git pager |
+| `PAGER` | `cat` | Disable system pager |
+| `GCM_INTERACTIVE` | `never` | Disable Git credential manager prompts |
 | `DEBIAN_FRONTEND` | `noninteractive` | Suppress apt/dpkg UI prompts |
 | `PIP_NO_INPUT` | `1` | Disable pip interactive prompts |
 | `HOMEBREW_NO_AUTO_UPDATE` | `1` | Disable homebrew auto-update during install |
+| `npm_config_yes` | `true` | Suppress npm prompts |
+| `YARN_ENABLE_IMMUTABLE_INSTALLS` | `false` | Allow yarn lockfile updates non-interactively |
 
 Example:
 
@@ -181,11 +188,29 @@ Example:
 GIT_TERMINAL_PROMPT=0 git clone https://github.com/example/repo.git
 ```
 
-## 9. Source references
+## 9. Timeout and last resort
+
+Prefer the shell tool's `timeout` parameter. If a command may hang and has no non-interactive form, wrap it as a last resort:
+
+```bash
+timeout 30 ./potentially_hanging_script.sh || echo "Timed out"
+```
+
+## 10. Best practices
+
+1. Mentally check every command for interactive prompts before running.
+2. Look up flags (`-y`, `--yes`, `--non-interactive`, `-f`, `--force`) via `--help` or docs.
+3. Prefer OpenCode tools over shell commands for file operations.
+4. Set a timeout for any command that might unexpectedly prompt.
+5. Never use `yes | …`, heredocs feeding secrets, or `StrictHostKeyChecking=no` to bypass safety.
+
+## 11. Source references
 
 - Git: [git-commit](https://git-scm.com/docs/git-commit), [git-merge](https://git-scm.com/docs/git-merge), [git-pull](https://git-scm.com/docs/git-pull), [git-rebase](https://git-scm.com/docs/git-rebase); `--no-edit`, `--no-pager`, `-m`.
 - OpenSSH: [ssh_config(5)](https://man.openbsd.org/ssh_config) — `BatchMode`, `StrictHostKeyChecking`, `ConnectTimeout`.
 - sudo: [sudo(8)](https://www.sudo.ws/docs/man/sudo.man/) — `-n` non-interactive mode.
 - npm: [npm init](https://docs.npmjs.com/cli/v11/commands/npm-init) (`npm init -y`) and [npm install](https://docs.npmjs.com/cli/v11/commands/npm-install) (`npm install` has no `--yes`).
 - rm: [POSIX rm](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/rm.html) — default is non-interactive; `-i` prompts; `-f` ignores errors and prompts.
-- OpenCode: instructions are loaded from the `instructions[]` array in [opencode.json/opencode.jsonc](https://opencode.ai/docs/config/); see also [Rules](https://opencode.ai/docs/rules/).
+- Docker: [docker run](https://docs.docker.com/reference/cli/docker/container/run/), [docker exec](https://docs.docker.com/reference/cli/docker/container/exec/), [docker build](https://docs.docker.com/reference/cli/docker/buildx/build/), [docker compose up](https://docs.docker.com/reference/cli/docker/compose/up/).
+- OpenCode: instructions are loaded from the `instructions[]` array in [opencode.json/opencode.jsonc](https://opencode.ai/docs/config/); see also [Rules](https://opencode.ai/docs/rules/) and [Permissions](https://opencode.ai/docs/permissions/).
+- OpenCode v2: [Tools](https://opencode.ai/v2/docs/tools/), [Shell tool](https://opencode.ai/v2/docs/tools/).
