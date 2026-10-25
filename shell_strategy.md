@@ -49,6 +49,12 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 us
 
 `StrictHostKeyChecking=no` is prohibited because it silently accepts changed host keys.
 
+For file transfers, use the same SSH options:
+
+```bash
+scp -o BatchMode=yes -o StrictHostKeyChecking=accept-new file user@host:/path
+```
+
 ## 4. Privileged commands
 
 Use `sudo -n` to run a command only when it can succeed without a password. If the command requires a password, `sudo -n` exits with a non-zero status.
@@ -67,8 +73,14 @@ Do not pipe passwords to `sudo -S` or any other command.
 |------|-------------------|------------------------|
 | npm init | `npm init` | `npm init -y` |
 | npm install | `npm install` (may need config) | `npm install` (non-interactive by default) |
+| Yarn | `yarn install` | `yarn install --non-interactive` |
+| PNPM | `pnpm install` | `pnpm install --reporter=silent` |
+| Bun | `bun init` | `bun init -y` |
+| Bun | `bun install` | `bun install` (non-interactive by default) |
 | apt install | `apt-get install pkg` | `apt-get install -y pkg` |
+| apt upgrade | `apt-get upgrade` | `apt-get upgrade -y` |
 | pip install | `pip install pkg` | `pip install --no-input pkg` |
+| Homebrew | `brew install pkg` | `HOMEBREW_NO_AUTO_UPDATE=1 brew install pkg` |
 
 `npm install` is non-interactive by default. Use it directly; do not pass a blanket `--yes` or `--force` flag. `npm init -y` is the documented shorthand for `npm init --yes`.
 
@@ -80,7 +92,8 @@ Do not pipe passwords to `sudo -S` or any other command.
 | merge | `git merge branch` | `git merge --no-edit branch` |
 | pull | `git pull` | `git pull --no-edit` |
 | rebase | `git rebase -i` | `git rebase` |
-| add | `git add -p` | `git add <file>` |
+| add | `git add -p` | `git add <file>` or `git add .` |
+| stash pop | `git stash pop` (conflicts) | `git stash pop` (handle conflicts manually) |
 | log | `git log` (pager) | `git --no-pager log` |
 | diff | `git diff` (pager) | `git --no-pager diff` |
 
@@ -94,13 +107,32 @@ Git may invoke an editor for `commit` without `-m` and for `merge` or `pull` whe
 | cp | `cp -i a b` prompts before overwrite. Use `cp a b` if you accept the default, or `cp -f a b` if overwrite is intended. |
 | mv | `mv -i a b` prompts before overwrite. Use `mv a b` if you accept the default, or `mv -f a b` if overwrite is intended. |
 | unzip | `unzip -o file.zip` overwrites existing files without prompting. |
+| tar | `tar xf file.tar` is usually non-interactive. |
+
+### System and network
+
+| Tool | Interactive (BAD) | Non-interactive (GOOD) |
+|------|-------------------|------------------------|
+| scp | `scp file host:` | `scp -o BatchMode=yes file host:` |
+| curl | `curl url` | `curl -fsSL url` |
+| wget | `wget url` | `wget -q url` |
+
+### Docker
+
+| Action | Interactive (BAD) | Non-interactive (GOOD) |
+|--------|-------------------|------------------------|
+| run | `docker run -it image` | `docker run image` |
+| exec | `docker exec -it container bash` | `docker exec container cmd` |
+| build | `docker build .` | `docker build --progress=plain .` |
+| compose | `docker-compose up` | `docker-compose up -d` |
 
 ### REPLs
 
 | Tool | Interactive (BAD) | Non-interactive (GOOD) |
 |------|-------------------|------------------------|
-| python | `python` | `python -c "code"` |
-| node | `node` | `node -e "code"` |
+| python | `python` | `python -c "code"` or `python script.py` |
+| node | `node` | `node -e "code"` or `node script.js` |
+| ipython | `ipython` | Never use; use `python -c` |
 
 ## 6. Optional per-command environment variables
 
